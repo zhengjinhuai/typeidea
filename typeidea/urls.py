@@ -13,16 +13,32 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.conf.urls import url  # django推荐用path
+# from django.conf.urls import url  # django推荐用path
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, re_path
 
+
+from blog.views import IndexView, CategoryView, \
+    TagView, PostDetailView, SearchView, AuthorView
+from comment.views import CommentView
 from .custom_site import custom_site
+from config.views import LinkListView
 
 urlpatterns = [
-    path('super_admin/', admin.site.urls),
-    path('admin/', custom_site.urls)
-]
+    re_path(r'^$', IndexView.as_view(), name='index'),
+    re_path(r'^category/(?P<category_id>\d+)/$', CategoryView.as_view(), name='category-list'),
+    re_path(r'^tag/(?P<tag_id>\d+)/$', TagView.as_view(), name='tag-list'),
+    re_path(r'^post/(?P<post_id>\d+).html$', PostDetailView.as_view(), name='post-detail'),
+    re_path(r'^super_admin/', admin.site.urls, name='super-admin'),
+    re_path(r'^admin/', custom_site.urls, name='admin'),
 
-#     url(r'^super_admin/', admin.site.urls),
-#     url(r'^admin/', custom_site.urls)
+    re_path(r'^search/$', SearchView.as_view(), name='search'),
+    re_path(r'^author/(?P<owner_id>\d+)/$', AuthorView.as_view(), name='author'),
+
+    re_path(r'^links/$', LinkListView.as_view(), name='links'),
+
+    re_path(r'^comment/$', CommentView.as_view(), name='comment'),
+]
+# url(r'^super_admin/', admin.site.urls),
+# url(r'^admin/', custom_site.urls)
+# url （＜正则或者字符串＞， <view function>, ＜ 固定参数context>, <url 的名称＞）

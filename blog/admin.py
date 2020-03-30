@@ -20,7 +20,7 @@ class PostInline(admin.TabularInline):
 class CategoryAdmin(BaseOwnerAdmin):
     inlines = [PostInline, ]
     list_display = ('name', 'status', 'is_nav', 'owner', 'created_time', 'post_count')
-    fields = ('name', 'status', 'owner', 'is_nav')
+    fields = ('name', 'status', 'is_nav')
 
     def post_count(self, obj):
         return obj.post_set.count()
