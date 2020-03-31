@@ -47,7 +47,7 @@ class CategoryOwnerFilter(RelatedFieldListFilter):
     def __init__(self, field, request, params, model, model_admin, field_path):
         super().__init__(field, request, params, model, model_admin, field_path)
         # 重新获得lookup_choices,根据owner过滤
-        self.lockup_choices = Category.objects.filter(owner=request.user).values_list('id', 'name')
+        self.lookup_choices = Category.objects.filter(owner=request.user).values_list('id', 'name')
 
 
 # 将过滤器注册到过滤器管理器中，并设置优先权，这样页面加载时会使用我们自定义的过滤器
@@ -83,7 +83,7 @@ class PostAdmin(BaseOwnerAdmin):
 
     exclude = ['owner']
 
-    fieldsets = (
+    form_layout = (
         Fieldset(
             '基础信息',
             Row("title", "category"),
@@ -93,8 +93,11 @@ class PostAdmin(BaseOwnerAdmin):
         Fieldset(
             '内容信息',
             'desc',
+            'is_md',
+            'content_ck',
+            'content_md'
             'content',
-        ),
+        )
     )
 
     def operator(self, obj):

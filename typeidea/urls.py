@@ -15,8 +15,12 @@ Including another URLconf
 """
 # from django.conf.urls import url  # django推荐用path
 from django.contrib import admin
+import xadmin
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib.sitemaps import views as sitemap_views
-from django.urls import path, re_path
+from django.urls import path, re_path, include
+
 
 
 from blog.views import IndexView, CategoryView, \
@@ -25,7 +29,7 @@ from blog.rss import LatestPostFeed
 from blog.sitemap import PostSitemap
 from comment.views import CommentView
 from config.views import LinkListView
-import xadmin
+from .autocomplete import CategoryAutocomplete, TagAutocomplete
 
 
 urlpatterns = [
@@ -44,7 +48,11 @@ urlpatterns = [
     re_path(r'^rss|feed/', LatestPostFeed(), name='rss'),
     re_path(r'^sitemap\.xml$', sitemap_views.sitemap, {'sitemaps': {'posts': PostSitemap}}),
 
-]
+    re_path(r'^category-autocomplete/$', CategoryAutocomplete.as_view(), name='category-autocomplete'),
+    re_path(r'^tag-autocomplete/$', TagAutocomplete.as_view(), name='tag-autocomplete'),
+
+    re_path(r'^ckeditor/', include('ckeditor_uploader.urls')),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # 用来配置图片资源请问
 # url(r'^super_admin/', admin.site.urls),
 # url(r'^admin/', custom_site.urls)
 # url （＜正则或者字符串＞， <view function>, ＜ 固定参数context>, <url 的名称＞）
