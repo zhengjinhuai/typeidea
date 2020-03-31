@@ -1,5 +1,7 @@
+import mistune
 from django.contrib.auth.models import User
 from django.db import models
+from django.utils.functional import cached_property  # 在合适的位置引入
 
 
 class Category(models.Model):
@@ -53,6 +55,7 @@ class Tag(models.Model):
 
     class Meta:
         verbose_name = verbose_name_plural = '标签'
+        ordering = ['-id']
 
     def __str__(self):
         return self.name
@@ -71,16 +74,22 @@ class Post(models.Model):
     title = models.CharField(max_length=255, verbose_name="标题")
     desc = models.CharField(max_length=1024, blank=True, verbose_name="摘要")
     content = models.TextField(verbose_name="正文", help_text="正文必须为MarkDown格式")
+    content_html = models.TextField(verbose_name="正文html代码", blank=True, editable=False)
     status = models.PositiveIntegerField(default=STATUS_NORMAL, choices=STATUS_ITEMS, verbose_name="状态")
     category = models.ForeignKey(Category, verbose_name="分类", on_delete=models.CASCADE)
     tag = models.ManyToManyField(Tag, verbose_name="标签")
     owner = models.ForeignKey(User, verbose_name="作者", on_delete=models.CASCADE)
     created_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+
     pv = models.PositiveIntegerField(default=1)
     uv = models.PositiveIntegerField(default=1)
 
     class Meta:
         verbose_name = verbose_name_plural = "文章"
+
+    def save(self, *args, **kwargs):
+        self.content_html = mistune.markdown(self.content)
+        super().save(*args, **kwargs)
 
     @staticmethod
     def get_by_tag(tag_id):
@@ -113,6 +122,11 @@ class Post(models.Model):
     @classmethod
     def hot_posts(cls):
         return cls.objects.filter(status=cls.STATUS_NORMAL).order_by('-pv')
+
+    @cached_property
+    def tags(self):
+        """使用cached_property作用帮助我们把返回的数据绑到实例上,不用每次访问都执行tags中的代码"""
+        return ','.join(self.tag.values_list('name', flat=True))
 
     def __str__(self):
         return self.title

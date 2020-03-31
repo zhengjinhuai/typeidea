@@ -1,3 +1,6 @@
+from datetime import date  # 文件第一行
+
+from django.core.cache import cache  # 内存缓存是进程间独立的
 from django.views.generic import DetailView, ListView
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, F
@@ -61,18 +64,36 @@ class TagView(IndexView):
 
 
 class PostDetailView(CommonViewMixin, DetailView):
-    queryset = Post.objects.filter(status=Post.STATUS_NORMAL)
+    queryset = Post.objects.filter(status=Post.STATUS_NORMAL).order_by('created_time')
     template_name = 'blog/detail.html'
     context_object_name = 'post'
     pk_url_kwarg = 'post_id'
 
     def get(self, request, *args, **kwargs):
         response = super(PostDetailView, self).get(request, *args, **kwargs)
-        Post.objects.filter(pk=self.object.id).update(pv=F('pv')+1, uv=F('uv')+1)
-
-        from django.db import connection
-        print(connection.queries)
+        self.handle_visited()
         return response
+
+    def handle_visited(self):
+        increase_pv = False
+        increase_uv = False
+        uid = self.request.uid
+        pv_key = 'pv:%s:%s' % (uid, self.request.path)
+        uv_key = 'uv:%s:%s:%s' % (uid, str(date.today()), self.request.path)
+        if not cache.get(pv_key):
+            increase_pv = True
+            cache.set(pv_key, 1, 1*60)  # 1分钟有效
+
+        if not cache.get(uv_key):
+            increase_uv = True
+            cache.set(uv_key, 1, 24*60*60)  # 24小时有效
+
+        if increase_uv and increase_pv:
+            Post.objects.filter(pk=self.object.id).update(pv=F('pv') + 1, uv=F('uv') + 1)
+        elif increase_pv:
+            Post.objects.filter(pk=self.object.id).update(pv=F('pv') + 1)
+        elif increase_uv:
+            Post.objects.filter(pk=self.object.id).update(uv=F('uv') + 1)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -86,7 +107,7 @@ class PostDetailView(CommonViewMixin, DetailView):
 class SearchView(IndexView):
     def get_context_data(self):
         context = super().get_context_data()
-        print(self.request.GET.get('keyword', ''))
+        # print(self.request.GET.get('keyword', ''))
         context.update({
             'keyword': self.request.GET.get('keyword', '')
         })
@@ -97,9 +118,7 @@ class SearchView(IndexView):
         keyword = self.request.GET.get('keyword')
         if not keyword:
             return queryset
-        print(queryset.filter(Q(title__icontains=keyword) | Q(desc__icontains=keyword)))
-
-        return queryset.filter(Q(title__icontains=keyword) | Q(desc__icontains=keyword))
+        return queryset.filter(Q(title__icontains=keyword) | Q(desc__icontains=keyword))  # icontains不区分大小写
 
 
 class AuthorView(IndexView):
