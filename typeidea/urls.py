@@ -20,16 +20,21 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.sitemaps import views as sitemap_views
 from django.urls import path, re_path, include
-
-
+from rest_framework.routers import DefaultRouter
 
 from blog.views import IndexView, CategoryView, \
     TagView, PostDetailView, SearchView, AuthorView
 from blog.rss import LatestPostFeed
 from blog.sitemap import PostSitemap
+from blog.apis import PostViewSet
+# from blog.apis import post_list, PostList
 from comment.views import CommentView
 from config.views import LinkListView
 from .autocomplete import CategoryAutocomplete, TagAutocomplete
+
+
+router = DefaultRouter()
+router.register(r'post', PostViewSet, basename='api-post')
 
 
 urlpatterns = [
@@ -52,6 +57,10 @@ urlpatterns = [
     re_path(r'^tag-autocomplete/$', TagAutocomplete.as_view(), name='tag-autocomplete'),
 
     re_path(r'^ckeditor/', include('ckeditor_uploader.urls')),
+
+    re_path(r'^api/', include(router.urls)),
+    # re_path(r'^api/post/', post_list, name='post'),
+    # re_path(r'^api/post/', PostList.as_view(), name='post-list'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # 用来配置图片资源请问
 # url(r'^super_admin/', admin.site.urls),
 # url(r'^admin/', custom_site.urls)
